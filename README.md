@@ -5,7 +5,7 @@
 <h1 align="center">Korvian Web Server (Experimental)</h1>
 
 <p align="center">
-  <b>An opinionated Kotlin Web Server powered by a flexible message-driven core for Backend For Frontend (BFF) services.</b><br/>
+  An opinionated Kotlin Web Server powered by a flexible message-driven core for Backend For Frontend (BFF) services.<br/>
   Supports <b>Request/Reply</b>, <b>Request/Stream</b> and <b>Publish/Subscribe</b> communication modes out of the box, providing a seamless match for reactive frontend data flows.
 </p>
 
