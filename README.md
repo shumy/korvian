@@ -5,8 +5,8 @@
 <h1 align="center">Korvian Web Server (Experimental)</h1>
 
 <p align="center">
-  <b>A Kotlin-native web server framework powered by a flexible message-driven core.</b><br/>
-  Supports request/reply, request/stream, and publish/subscribe communication modes out of the box.
+  <b>An opinionated Kotlin Web Server powered by a flexible message-driven core for Backend For Frontend (BFF) services.</b><br/>
+  Supports <b>Request/Reply</b>, <b>Request/Stream</b> and <b>Publish/Subscribe</b> communication modes out of the box, providing a seamless match for reactive frontend data flows.
 </p>
 
 ---
@@ -19,8 +19,8 @@
 
 ---
 
-Korvian is designed for **scalability**, **clean Kotlin APIs**, and **efficient asynchronous processing**.  
-It leverages Kotlin's strengths — coroutines, DSLs, and strong typing — to give developers an intuitive and high-performance server framework.
+Korvian is designed for **scalability**, **clean Kotlin APIs**, and **efficient asynchronous processing**.
+It leverages Kotlin's strengths — Annotations, DSLs, Compiler Plugins and strong typing — to give developers an intuitive and high-performance server framework.
 
 > 🐦 **Why “Korvian”?**  
 > Inspired by the raven — a messenger bird known for intelligence and adaptability — Korvian delivers fast, reliable message handling in modern server architectures.
