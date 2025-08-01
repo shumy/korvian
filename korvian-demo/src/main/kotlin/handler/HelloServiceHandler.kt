@@ -11,8 +11,9 @@ class HelloServiceHandler: IHelloService {
     val helloSource = source<String>("ch:hello")
     val helloSink = sink<String>("ch:hello")
 
-    override fun pubHello(name: String) =
+    override fun pubHello(name: String) {
         helloSink.publish("pubHello $name")
+    }
 
     override fun subHello(): ISubscription<String> =
         helloSource.subscribe()

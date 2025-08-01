@@ -5,9 +5,8 @@ typealias IStream<T> = (sink: ISink<T>) -> Unit
 
 interface IChannel<T: Any> {
     val name: String
-
-    fun source(): ISource<T>
-    fun sink(): ISink<T>
+    val source: ISource<T>
+    val sink: ISink<T>
 }
 
 interface ISink<T: Any> {
