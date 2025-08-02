@@ -1,33 +1,32 @@
-import dev.korvian.IChannel
-import dev.korvian.ISink
-import dev.korvian.ISource
-import dev.korvian.ISubscription
+import com.lectra.koson.obj
 import dev.korvian.di.Store
-import dev.korvian.di.service
+import dev.korvian.pipeline.IPipeline
+import dev.korvian.pipeline.JsonDecoder
+import dev.korvian.pipeline.JsonEncoder
+import dev.korvian.pipeline.Pipeline
+import dev.korvian.pipeline.Router
+import handler.HelloChannelHandler
 
 fun main() {
-    val helloSource = object: ISource<String> {
-        override fun subscribe(): ISubscription<String> {
-            TODO("Not yet implemented")
-        }
-    }
-
-    val helloSink = object: ISink<String> {
-        override fun publish(data: String) {
-            println(data)
-        }
-
-    }
-
-    val helloChannel = object: IChannel<String> {
-        override val name = "ch:hello"
-        override val source = helloSource
-        override val sink = helloSink
-    }
-
-    Store.Channel.add(String::class, helloChannel)
+    Store.Channel.add(String::class, HelloChannelHandler())
     Store.Service += IHelloService::class
 
-    val srv = service<IHelloService>()
-    srv.pubHello("Test")
+    val pipeline: IPipeline = Pipeline(JsonDecoder(), JsonEncoder(), Router(Store.Service))
+
+    val msg = obj {
+        "head" to obj {
+            "typ" to "req"
+            "ref" to "ref-1"
+            "srv" to "IHelloService"
+            "trg" to "simpleHello"
+        }
+
+        "body" to obj {
+
+        }
+    }
+
+    pipeline.process(msg.toString().toByteArray()) {
+        println(it)
+    }
 }
