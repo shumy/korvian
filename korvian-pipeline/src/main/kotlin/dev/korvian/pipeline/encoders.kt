@@ -10,6 +10,7 @@ import kotlinx.serialization.serializer
 import kotlin.reflect.KType
 
 private val json = Json {
+    encodeDefaults = true
     ignoreUnknownKeys = true
 }
 
@@ -44,9 +45,9 @@ class JsonDecoder: IDecoder<String, JsonElement> {
 }
 
 class JsonEncoder: IEncoder<String> {
-    override fun encode(header: Outgoing, kType: KType?, body: Any?): String {
+    override fun encode(header: Outgoing, rType: KType?, result: Any?): String {
         val type = OutgoingHeaderType.fromCode(header.typ)
-        val head = when(type) {
+        val jsonHead = when(type) {
             OutgoingHeaderType.REPLY -> json.encodeToString(header as Outgoing.RefOutgoing.Reply)
             OutgoingHeaderType.ACCEPT -> json.encodeToString(header as Outgoing.RefOutgoing.Accept)
             OutgoingHeaderType.REJECT -> json.encodeToString(header as Outgoing.RefOutgoing.Reject)
@@ -56,11 +57,11 @@ class JsonEncoder: IEncoder<String> {
             OutgoingHeaderType.EVENT -> json.encodeToString(header as Outgoing.Event)
         }
 
-        if (kType !== null && body !== null) {
-            val body = json.encodeToString(serializer(kType), body)
-            return """{"head":$head,$body}"""
+        if (rType !== null && result !== null) {
+            val jsonResult = json.encodeToString(serializer(rType), result)
+            return """{"head":$jsonHead,"res":$jsonResult}"""
         }
 
-        return """{"head":$head}"""
+        return """{"head":$jsonHead}"""
     }
 }

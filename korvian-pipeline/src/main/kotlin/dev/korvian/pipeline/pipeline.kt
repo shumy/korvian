@@ -7,7 +7,6 @@ import dev.korvian.di.store.EndpointParam
 import dev.korvian.di.store.EndpointType
 import kotlin.reflect.KType
 import kotlin.reflect.safeCast
-import dev.korvian.pipeline.OutgoingHeaderType.*
 
 class PipeException(msg: String): RuntimeException(msg)
 
@@ -21,7 +20,7 @@ interface IDecoder<I: Any, T: Any> {
 }
 
 interface IEncoder<R: Any> {
-    fun encode(header: Outgoing, kType: KType? = null, body: Any? = null): R
+    fun encode(header: Outgoing, rType: KType? = null, result: Any? = null): R
 }
 
 typealias ReplyCallBack<R> = (R) -> Unit
@@ -70,10 +69,8 @@ class Pipeline<I: Any, B: Any, R: Any>(val decoder: IDecoder<I, B>, val encoder:
         onReply.invoke(data)
     }
 
-
     private fun processRequestReply(ref: String, rType: KType, reply: IReply<*>) {
         // TODO: ack (ACCEPT, REJECT)
-
     }
 
     private fun processRequestStream(ref: String, rType: KType, stream: IStream<*>) {

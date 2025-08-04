@@ -72,12 +72,12 @@ sealed interface Outgoing {
         }
 
         @Serializable
-        data class Next(override val ref: String, val seq: Unit): RefOutgoing {
+        data class Next(override val ref: String, val seq: ULong): RefOutgoing {
             override val typ: String = OutgoingHeaderType.NEXT.code
         }
 
         @Serializable
-        data class End(override val ref: String): RefOutgoing {
+        data class End(override val ref: String, val seq: ULong): RefOutgoing {
             override val typ: String = OutgoingHeaderType.END.code
         }
 
@@ -88,7 +88,7 @@ sealed interface Outgoing {
     }
 
     @Serializable
-    object Event: Outgoing {
+    data class Event(val channel: String, val seq: ULong): Outgoing {
         override val typ: String = OutgoingHeaderType.EVENT.code
     }
 }
