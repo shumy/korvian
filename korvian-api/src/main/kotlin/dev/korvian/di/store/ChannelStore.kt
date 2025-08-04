@@ -10,6 +10,9 @@ class ChannelStore {
     // TODO: match KClass with assignable?
     // TODO: search for channels via filter match?
 
+    fun getUndefined(type: KClass<*>, name: String): Any? =
+        store[type]?.get(name)
+
     @Suppress("UNCHECKED_CAST")
     fun <T: Any> getOptional(type: KClass<T>, name: String): IChannel<T>? =
         store[type]?.get(name) as IChannel<T>?

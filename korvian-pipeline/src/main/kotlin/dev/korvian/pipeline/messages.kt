@@ -4,61 +4,93 @@ import kotlinx.serialization.Serializable
 
 enum class IncomingHeaderType(val code: String) {
     REQUEST("req"), PUBLISH("pub"), SUBSCRIBE("sub");
+
     companion object {
         fun fromCode(code: String) = when (code) {
             REQUEST.code -> REQUEST
             PUBLISH.code -> PUBLISH
             SUBSCRIBE.code -> SUBSCRIBE
-            else -> throw PipeException("'head.typ=$code' not supported for incoming messages!")
+            else -> throw PipeException("Code $code not supported for IncomingHeaderType!")
         }
     }
 }
 
-enum class OutgoingHeaderType(code: String) {
+enum class OutgoingHeaderType(val code: String) {
     REPLY("rpl"), ACCEPT("acp"), REJECT("rej"),
     NEXT("nxt"), END("end"), ERROR("err"),
-    EVENT("evt")
+    EVENT("evt");
+
+    companion object {
+        fun fromCode(code: String) = when (code) {
+            REPLY.code -> REPLY
+            ACCEPT.code -> ACCEPT
+            REJECT.code -> REJECT
+            NEXT.code -> NEXT
+            END.code -> END
+            ERROR.code -> ERROR
+            EVENT.code -> EVENT
+            else -> throw PipeException("Code $code not supported for OutgoingHeaderType!")
+        }
+    }
 }
 
 sealed interface Incoming {
+    val typ: String
     val ref: String
     val srv: String
     val trg: String
 
     @Serializable
-    data class Request(override val ref: String, override val srv: String, override val trg: String): Incoming
+    data class Request(override val typ: String, override val ref: String, override val srv: String, override val trg: String): Incoming
 
     @Serializable
-    data class Publish(override val ref: String, override val srv: String, override val trg: String): Incoming
+    data class Publish(override val typ: String, override val ref: String, override val srv: String, override val trg: String): Incoming
 
     @Serializable
-    data class Subscribe(override val ref: String, override val srv: String, override val trg: String): Incoming
+    data class Subscribe(override val typ: String, override val ref: String, override val srv: String, override val trg: String): Incoming
 }
 
 sealed interface Outgoing {
+    val typ: String
+
     sealed interface RefOutgoing: Outgoing {
         val ref: String
 
         @Serializable
-        data class Reply(override val ref: String) : RefOutgoing
+        data class Reply(override val ref: String): RefOutgoing {
+            override val typ: String = OutgoingHeaderType.REPLY.code
+        }
 
         @Serializable
-        data class Accept(override val ref: String) : RefOutgoing
+        data class Accept(override val ref: String): RefOutgoing {
+            override val typ: String = OutgoingHeaderType.ACCEPT.code
+        }
 
         @Serializable
-        data class Reject(override val ref: String) : RefOutgoing
+        data class Reject(override val ref: String): RefOutgoing {
+            override val typ: String = OutgoingHeaderType.REJECT.code
+        }
 
         @Serializable
-        data class Next(override val ref: String, val seq: Unit) : RefOutgoing
+        data class Next(override val ref: String, val seq: Unit): RefOutgoing {
+            override val typ: String = OutgoingHeaderType.NEXT.code
+        }
 
         @Serializable
-        data class End(override val ref: String) : RefOutgoing
+        data class End(override val ref: String): RefOutgoing {
+            override val typ: String = OutgoingHeaderType.END.code
+        }
 
         @Serializable
-        data class Error(override val ref: String, val msg: String) : RefOutgoing
+        data class Error(override val ref: String, val msg: String): RefOutgoing {
+            override val typ: String = OutgoingHeaderType.ERROR.code
+        }
     }
 
-    object Event: Outgoing
+    @Serializable
+    object Event: Outgoing {
+        override val typ: String = OutgoingHeaderType.EVENT.code
+    }
 }
 
 @Serializable

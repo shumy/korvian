@@ -18,25 +18,26 @@ import kotlin.reflect.full.primaryConstructor
 import kotlin.reflect.typeOf
 
 enum class EndpointType { REQUEST, PUBLISH, SUBSCRIBE }
-data class EndpointParam(val type: KClass<*>, val name: String, val isOptional: Boolean)
+data class EndpointParam(val kClass: KClass<*>, val kType: KType, val name: String, val isOptional: Boolean)
 data class Endpoint(val type: EndpointType, val name: String, val exec: EndpointExecutor, val params: List<EndpointParam>, val retType: EndpointParam)
 
 fun interface EndpointExecutor {
-    fun process(vararg args: Any?): Any?
+    fun process(srv: Any, args: Array<Any?>): Any?
 }
 
 class ServiceStore {
     private val store = mutableMapOf<String, Any>()
     private val endpoints = mutableMapOf<String, Endpoint>()
 
-    fun getUndefined(type: KClass<*>): Any? = store[type.qualifiedName!!]
+    fun getUndefined(kClass: KClass<*>): Any? =
+        store[kClass.qualifiedName!!]
 
     @Suppress("UNCHECKED_CAST")
-    fun <T: Any> getOptional(type: KClass<T>): T? =
-        store[type.qualifiedName!!] as T?
+    fun <T: Any> getOptional(kClass: KClass<T>): T? =
+        store[kClass.qualifiedName!!] as T?
 
-    fun <T: Any> get(type: KClass<T>): T =
-        getOptional(type) ?: throw DIException("Service ${type.simpleName} not found!")
+    fun <T: Any> get(kClass: KClass<T>): T =
+        getOptional(kClass) ?: throw DIException("Service ${kClass.qualifiedName} not found!")
 
     fun resolveService(srv: String) = store[srv]
 
@@ -48,26 +49,26 @@ class ServiceStore {
         return endpoint
     }
 
-    operator fun plusAssign(type: KClass<*>) = add(type)
-    fun add(type: KClass<*>) {
-        val typeName = type.qualifiedName!!
+    operator fun plusAssign(kClass: KClass<*>) = add(kClass)
+    fun add(kClass: KClass<*>) {
+        val typeName = kClass.qualifiedName!!
         if(store.contains(typeName))
-            throw DIException("Service ${type.simpleName} is already available in store!")
+            throw DIException("Service ${kClass.qualifiedName} is already available in store!")
 
-        if(!type.java.isInterface)
-            throw DIException("Service ${type.simpleName} is not an interface!")
+        if(!kClass.java.isInterface)
+            throw DIException("Service ${kClass.qualifiedName} is not an interface!")
 
-        val annService = type.findAnnotations(Service::class).firstOrNull()
-            ?: throw DIException("Service ${type.simpleName} requires @Service annotation!")
+        val annService = kClass.findAnnotations(Service::class).firstOrNull()
+            ?: throw DIException("Service ${kClass.qualifiedName} requires @Service annotation!")
 
-        if(!type.isSuperclassOf(annService.handler))
-            throw DIException("Handler for service ${type.simpleName} doesn't implement the service interface!")
+        if(!kClass.isSuperclassOf(annService.handler))
+            throw DIException("Handler for service ${kClass.qualifiedName} doesn't implement the service interface!")
 
         val defaultConstructor = annService.handler.primaryConstructor!!
         if (defaultConstructor.parameters.isNotEmpty())
-            throw DIException("Service ${type.simpleName} with parameters is not supported!")
+            throw DIException("Service ${kClass.qualifiedName} with parameters is not supported!")
 
-        for (eMember in type.declaredMembers) {
+        for (eMember in kClass.declaredMembers) {
             val endpoint = getEndpoint(typeName, eMember)
             endpoints[endpoint.name] = endpoint
         }
@@ -96,7 +97,7 @@ class ServiceStore {
 
         eType ?: throw DIException("Service method $endpointName requires an endpoint annotation!")
 
-        val executor = EndpointExecutor { eMember.call(it) }
+        val executor = EndpointExecutor { srv, args -> eMember.call(srv, *args) }
         val params = eMember.parameters.drop(1).map { checkAndConvertParameter(endpointName, it) }
         val retType = checkAndConvertReturnType(endpointName, eType, eMember.returnType)
 
@@ -108,24 +109,24 @@ private fun checkAndConvertParameter(endpoint: String, param: KParameter): Endpo
     if (param.isVararg)
         throw DIException("Varargs are not supported in service methods! Param ${param.name} for $endpoint.")
 
-    val type = param.type.classifier!! as KClass<*>
+    val kClass = param.type.classifier!! as KClass<*>
 
     // TODO: check supported types (native, @Serializable)
     println("${param.type.classifier!!} - ${param.type == typeOf<String>()}")
 
-    return EndpointParam(type, param.name!!, param.isOptional)
+    return EndpointParam(kClass, param.type, param.name!!, param.isOptional)
 }
 
 private fun checkAndConvertReturnType(endpoint: String, eType: EndpointType, retType: KType): EndpointParam {
-    val type = retType.classifier!! as KClass<*>
+    val kClass = retType.classifier!! as KClass<*>
 
-    if (eType == EndpointType.PUBLISH && type != Unit::class)
+    if (eType == EndpointType.PUBLISH && kClass != Unit::class)
         throw DIException("Return value is not supported @Publish methods! Return type $retType for $endpoint.")
 
-    if (eType == EndpointType.SUBSCRIBE && type != ISubscription::class)
+    if (eType == EndpointType.SUBSCRIBE && kClass != ISubscription::class)
         throw DIException("Expecting ISubscription return value for @Subscribe method! Return type $retType for $endpoint.")
 
     // TODO: check return type for REQUEST
 
-    return EndpointParam(type, "_return_", retType.isMarkedNullable)
+    return EndpointParam(kClass, retType, "_return_", retType.isMarkedNullable)
 }

@@ -2,14 +2,16 @@ package handler
 
 import IHelloService
 import dev.korvian.IReply
+import dev.korvian.ISink
+import dev.korvian.ISource
 import dev.korvian.IStream
 import dev.korvian.ISubscription
 import dev.korvian.di.sink
 import dev.korvian.di.source
 
 class HelloServiceHandler: IHelloService {
-    val helloSource = source<String>("ch:hello")
-    val helloSink = sink<String>("ch:hello")
+    val helloSource: ISource<String> = source("ch:hello")
+    val helloSink: ISink<String> = sink("ch:hello")
 
     override fun pubHello(name: String) {
         helloSink.publish("pubHello $name")
@@ -19,8 +21,10 @@ class HelloServiceHandler: IHelloService {
         helloSource.subscribe()
 
     // This will send the accept signal at the same time as the response
-    override fun simpleHello(name: String) =
-        "simpleHello $name"
+    override fun simpleHello(name: String): String {
+        println("Running simpleHello!")
+        return "simpleHello $name"
+    }
 
     // This will send the accept signal before starting the reply process
     override fun deferredHello(name: String): IReply<String> {

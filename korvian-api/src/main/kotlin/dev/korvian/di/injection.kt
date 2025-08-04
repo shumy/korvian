@@ -14,20 +14,26 @@ inline fun <reified T> service(): T {
     return srv as T
 }
 
-inline fun <reified T: Any> channel(channel: String): IChannel<T> =
-    Store.Channel.get(T::class, channel)
+inline fun <reified T: Any, reified C: IChannel<T>?> channel(name: String): C {
+    val channel = Store.Channel.getUndefined(T::class, name)
+    if (null !is C && channel === null)
+        throw DIException("Channel for ${T::class.simpleName}:$name not found!")
 
-inline fun <reified T: Any> channelOptional(channel: String): IChannel<T>? =
-    Store.Channel.getOptional(T::class, channel)
+    return channel as C
+}
 
-inline fun <reified T: Any> source(channel: String): ISource<T> =
-    channel<T>(channel).source
+inline fun <reified T: Any, reified S: ISource<T>?> source(name: String): S {
+    val source: ISource<T>? = channel<T, IChannel<T>?>(name)?.source
+    if (null !is S && source === null)
+        throw DIException("Source for ${T::class.simpleName}:$name not found!")
 
-inline fun <reified T: Any> sourceOptional(channel: String): ISource<T>? =
-    channelOptional<T>(channel)?.source
+    return source as S
+}
 
-inline fun <reified T: Any> sink(channel: String): ISink<T> =
-    channel<T>(channel).sink
+inline fun <reified T: Any, reified S: ISink<T>?> sink(name: String): S {
+    val sink: ISink<T>? = channel<T, IChannel<T>?>(name)?.sink
+    if (null !is S && sink === null)
+        throw DIException("Sink for ${T::class.simpleName}:$name not found!")
 
-inline fun <reified T: Any> sinkOptional(channel: String): ISink<T>? =
-    channelOptional<T>(channel)?.sink
+    return sink as S
+}
