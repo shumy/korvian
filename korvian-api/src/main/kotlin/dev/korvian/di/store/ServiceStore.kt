@@ -1,11 +1,14 @@
 package dev.korvian.di.store
 
+import dev.korvian.IReply
+import dev.korvian.IStream
 import dev.korvian.ISubscription
 import dev.korvian.Publish
 import dev.korvian.Request
 import dev.korvian.Service
 import dev.korvian.Subscribe
 import dev.korvian.di.DIException
+import kotlinx.serialization.Serializable
 import kotlin.reflect.KCallable
 import kotlin.reflect.KClass
 import kotlin.reflect.KParameter
@@ -15,15 +18,8 @@ import kotlin.reflect.full.findAnnotations
 import kotlin.reflect.full.hasAnnotation
 import kotlin.reflect.full.isSuperclassOf
 import kotlin.reflect.full.primaryConstructor
+import kotlin.reflect.full.starProjectedType
 import kotlin.reflect.typeOf
-
-enum class EndpointType { REQUEST, PUBLISH, SUBSCRIBE }
-data class EndpointParam(val kClass: KClass<*>, val kType: KType, val name: String, val isOptional: Boolean)
-data class Endpoint(val type: EndpointType, val name: String, val exec: EndpointExecutor, val params: List<EndpointParam>, val retType: EndpointParam)
-
-fun interface EndpointExecutor {
-    fun process(srv: Any, args: Array<Any?>): Any?
-}
 
 class ServiceStore {
     private val store = mutableMapOf<String, Any>()
@@ -105,28 +101,59 @@ class ServiceStore {
     }
 }
 
+enum class EndpointType { REQUEST, PUBLISH, SUBSCRIBE }
+data class EndpointParam(val kType: KType, val name: String, val isOptional: Boolean)
+data class Endpoint(val type: EndpointType, val name: String, val exec: EndpointExecutor, val params: List<EndpointParam>, val retType: EndpointParam)
+
+fun interface EndpointExecutor {
+    fun process(srv: Any, args: Array<Any?>): Any?
+}
+
 private fun checkAndConvertParameter(endpoint: String, param: KParameter): EndpointParam {
     if (param.isVararg)
         throw DIException("Varargs are not supported in service methods! Param ${param.name} for $endpoint.")
 
     val kClass = param.type.classifier!! as KClass<*>
+    if (!nativeTypes.contains(kClass) && !kClass.hasAnnotation<Serializable>())
+        throw DIException("Unsupported parameter type (${param.name}: ${param.type}) for $endpoint.")
 
-    // TODO: check supported types (native, @Serializable)
-    println("${param.type.classifier!!} - ${param.type == typeOf<String>()}")
-
-    return EndpointParam(kClass, param.type, param.name!!, param.isOptional)
+    return EndpointParam(param.type, param.name!!, param.isOptional)
 }
 
 private fun checkAndConvertReturnType(endpoint: String, eType: EndpointType, retType: KType): EndpointParam {
     val kClass = retType.classifier!! as KClass<*>
+    val resolvedRetType = when (eType) {
+        EndpointType.PUBLISH -> {
+            if (kClass != Unit::class)
+                throw DIException("Expected Unit return type for @Publish endpoint $endpoint! Return type is ($retType).")
+            typeOf<Unit>()
+        }
 
-    if (eType == EndpointType.PUBLISH && kClass != Unit::class)
-        throw DIException("Return value is not supported @Publish methods! Return type $retType for $endpoint.")
+        EndpointType.SUBSCRIBE -> {
+            if (kClass != ISubscription::class)
+                throw DIException("Expecting ISubscription return type for @Subscribe endpoint $endpoint! Return type is ($retType).")
+            retType.arguments[0].type!!
+        }
 
-    if (eType == EndpointType.SUBSCRIBE && kClass != ISubscription::class)
-        throw DIException("Expecting ISubscription return value for @Subscribe method! Return type $retType for $endpoint.")
+        EndpointType.REQUEST -> {
+            when (kClass) {
+                IReply::class -> retType.arguments[0].type!!
+                IStream::class -> retType.arguments[0].type!!.arguments[0].type!!
+                else -> retType
+            }
+        }
+    }
 
-    // TODO: check return type for REQUEST
+    val resolvedRetClass = resolvedRetType.classifier!! as KClass<*>
+    if (!nativeTypes.contains(resolvedRetClass) && !resolvedRetClass.hasAnnotation<Serializable>())
+        throw DIException("Unsupported return type (${retType}) for $endpoint.")
 
-    return EndpointParam(kClass, retType, "_return_", retType.isMarkedNullable)
+    return EndpointParam(resolvedRetType, "_return_", retType.isMarkedNullable)
 }
+
+// TODO: extend supported types
+private val nativeTypes = setOf<Any>(
+    Unit::class,
+    String::class,
+    List::class
+)

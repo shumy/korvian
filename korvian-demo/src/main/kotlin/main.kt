@@ -1,3 +1,4 @@
+import com.lectra.koson.arr
 import com.lectra.koson.obj
 import dev.korvian.di.Store
 import dev.korvian.pipeline.JsonDecoder
@@ -10,17 +11,17 @@ fun main() {
     Store.Channel.add(String::class, HelloChannelHandler())
     Store.Service += IHelloService::class
 
-    val pipeline = Pipeline(JsonDecoder(), JsonEncoder(), Router(Store.Service))
+    val pipeline = Pipeline(JsonDecoder(), JsonEncoder())
 
     val msg = obj {
         "head" to obj {
             "typ" to "req"
             "ref" to "ref-1"
             "srv" to "IHelloService"
-            "trg" to "simpleHello"
+            "trg" to "multipleHello"
         }
 
-        "name" to "Alex"
+        "names" to arr["Pedro", "Mica", "Lima"]
     }
 
     pipeline.process(msg.toString()) {
