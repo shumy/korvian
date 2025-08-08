@@ -116,6 +116,12 @@ class Connection<I: Any, R: Any>(private val pipeline: Pipeline<I, *, R>, privat
         onMsg.invoke(data)
     }
 
+    internal fun sendReject(ref: String, code: UInt, reason: String) {
+        val rejectHeader = Outgoing.RefOutgoing.Reject(ref, code, reason)
+        val rejectMsg = pipeline.encoder.encode(rejectHeader)
+        onMsg.invoke(rejectMsg)
+    }
+
     private fun sendAccept(ref: String, rType: KType? = null, result: Any? = null) {
         val acceptHeader = Outgoing.RefOutgoing.Accept(ref)
         val acceptMsg = pipeline.encoder.encode(acceptHeader, rType, result)

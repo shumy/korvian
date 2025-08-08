@@ -6,6 +6,7 @@ import dev.korvian.ISink
 import dev.korvian.ISource
 import dev.korvian.IStream
 import dev.korvian.ISubscription
+import dev.korvian.RejectError
 import dev.korvian.di.sink
 import dev.korvian.di.source
 import java.time.LocalDateTime
@@ -30,7 +31,7 @@ class HelloServiceHandler: IHelloService {
     // This will send the accept signal before starting the reply process
     override fun deferredHello(name: String): IReply<String> {
         if (name == "Alex")
-            throw Exception("Sorry, Alex is a terrorist!")
+            throw RejectError("Sorry, Alex is a terrorist!")
 
         return IReply { "deferredHello $name" }
     }
@@ -40,7 +41,7 @@ class HelloServiceHandler: IHelloService {
         // make some validations before accept request!
         for (name in names) {
             if (name == "Alex")
-                throw Exception("Sorry, Alex is a terrorist!")
+                throw RejectError("Sorry, Alex is a terrorist!")
         }
 
         return IStream {

@@ -1,5 +1,6 @@
 package dev.korvian.pipeline
 
+import dev.korvian.RejectError
 import dev.korvian.di.store.Endpoint
 import dev.korvian.di.store.EndpointType
 import dev.korvian.di.store.ServiceStore
@@ -21,32 +22,29 @@ class Pipeline<I: Any, B: Any, R: Any>(val srvStore: ServiceStore, val decoder: 
             val srv = srvStore.resolveService(srvHeader.srv)
                 ?: throw PipeException("Service ${srvHeader.srv} not found!")
 
-            val endpoint = resolve(srvHeader)
-            // TODO: header checks (security, custom)
+            val endpoint = resolveEndpoint(srvHeader)
+            // TODO: header checks (security, custom) --> CheckError(error)
 
-            val paramValues = decoder.bodyDecode(dMsg.body, endpoint.params)
-            // TODO: body checks (validation, mandatory, custom)
-
-
-            // TODO: how to reject?
-            val result = endpoint.exec.process(srv, paramValues)
-
+            val args = decoder.bodyDecode(dMsg.body, endpoint.params)
+            val response = executeEndpoint(connection, srvHeader.ref, srv, endpoint, args)
+            if (!response.hasResult)
+                return
 
             val rType = endpoint.retType.kType
             when (endpoint.type) {
-                EndpointType.REQUEST -> connection.processRequest(dMsg.header.ref, rType, result)
+                EndpointType.REQUEST -> connection.processRequest(dMsg.header.ref, rType, response.result)
                 EndpointType.PUBLISH -> connection.processPublish(dMsg.header.ref)
-                EndpointType.SUBSCRIBE -> connection.processSubscribe(dMsg.header.ref, rType, result!!)
+                EndpointType.SUBSCRIBE -> connection.processSubscribe(dMsg.header.ref, rType, response.result!!)
             }
         } catch (ex: PipeException) {
-            connection.sendError(dMsg.header.ref, ex.message!!)
+            connection.sendError(dMsg.header.ref, ex.message ?: "Unknown error!")
         } catch (ex: Throwable) {
-            println("Unexpected Exception!")
+            println("Unexpected error in pipeline!")
             ex.printStackTrace()
         }
     }
 
-    private fun resolve(header: Incoming.ServiceIncoming): Endpoint {
+    private fun resolveEndpoint(header: Incoming.ServiceIncoming): Endpoint {
         val endpointName = "${header.srv}:${header.trg}"
         val endpoint = when(header) {
             is Incoming.ServiceIncoming.Request -> srvStore.resolveEndpoint(EndpointType.REQUEST, endpointName)
@@ -59,6 +57,26 @@ class Pipeline<I: Any, B: Any, R: Any>(val srvStore: ServiceStore, val decoder: 
 
         return endpoint
     }
+
+    private fun executeEndpoint(connection: Connection<I, R>, ref: String, srv: Any, endpoint: Endpoint, args: Array<Any?>): HasResult {
+        try {
+            // TODO: body checks (validation, mandatory, custom) --> RejectError(code, reason)
+            return HasResult.yes(endpoint.exec.process(srv, args))
+        } catch (ex: RejectError) {
+            connection.sendReject(ref, ex.code, ex.reason)
+            return HasResult.no()
+        } catch (ex: Throwable) {
+            connection.sendError(ref, ex.message ?: "Unknown error!")
+            return HasResult.no()
+        }
+    }
 }
 
 class PipeException(msg: String): RuntimeException(msg)
+
+class HasResult private constructor(val hasResult: Boolean, val result: Any?) {
+    companion object {
+        fun no() = HasResult(false, null)
+        fun yes(result: Any?) = HasResult(true, result)
+    }
+}

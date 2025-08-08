@@ -74,7 +74,7 @@ sealed interface Outgoing {
         }
 
         @Serializable
-        data class Reject(override val ref: String): RefOutgoing {
+        data class Reject(override val ref: String, val code: UInt, val reason: String): RefOutgoing {
             override val typ: String = OutgoingHeaderType.REJECT.code
         }
 
