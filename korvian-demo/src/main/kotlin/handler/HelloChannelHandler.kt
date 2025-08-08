@@ -12,6 +12,11 @@ class HelloChannelHandler: IChannel<String> {
     override val source = ISource<String> {
         object: ISubscription<String> {
             override val id = UUID.randomUUID().toString()
+
+            override fun unsubscribe() {
+                TODO("Not yet implemented")
+            }
+
             override fun on(handler: (msg: String) -> Unit) {
                 TODO("Not yet implemented")
             }

@@ -9,9 +9,4 @@ subprojects {
 
     apply(plugin = "org.jetbrains.kotlin.jvm")
     apply(plugin = "org.jetbrains.kotlin.plugin.serialization")
-
-    dependencies {
-        implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
-        testImplementation("org.jetbrains.kotlin:kotlin-test")
-    }
 }

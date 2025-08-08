@@ -1,7 +1,20 @@
 package dev.korvian
 
-typealias IReply<T> = () -> T
-typealias IStream<T> = (sink: ISink<T>) -> Unit
+fun interface IReply<T: Any> {
+    fun invoke(): T
+}
+
+fun interface IReplyTask<T: Any> {
+    suspend fun invoke(): T
+}
+
+fun interface IStream<T: Any> {
+    fun invoke(sink: ISink<T>): Unit
+}
+
+fun interface IStreamTask<T: Any> {
+    suspend fun invoke(sink: ISink<T>): Unit
+}
 
 interface IChannel<T: Any> {
     val name: String
@@ -20,5 +33,7 @@ fun interface ISource<T: Any> {
 
 interface ISubscription<T: Any> {
     val id: String
+
+    fun unsubscribe()
     fun on(handler: (msg: T) -> Unit)
 }

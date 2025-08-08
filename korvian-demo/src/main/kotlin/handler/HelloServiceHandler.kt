@@ -8,6 +8,7 @@ import dev.korvian.IStream
 import dev.korvian.ISubscription
 import dev.korvian.di.sink
 import dev.korvian.di.source
+import java.time.LocalDateTime
 
 class HelloServiceHandler: IHelloService {
     val helloSource: ISource<String> = source("ch:hello")
@@ -21,9 +22,9 @@ class HelloServiceHandler: IHelloService {
         helloSource.subscribe()
 
     // This will send the accept signal at the same time as the response
-    override fun simpleHello(name: String): String {
+    override fun simpleHello(name: String): LocalDateTime {
         println("Running simpleHello!")
-        return "simpleHello $name"
+        return LocalDateTime.now()
     }
 
     // This will send the accept signal before starting the reply process
@@ -31,7 +32,7 @@ class HelloServiceHandler: IHelloService {
         if (name == "Alex")
             throw Exception("Sorry, Alex is a terrorist!")
 
-        return { "deferredHello $name" }
+        return IReply { "deferredHello $name" }
     }
 
     // This will send the accept signal before starting the stream process
@@ -42,7 +43,7 @@ class HelloServiceHandler: IHelloService {
                 throw Exception("Sorry, Alex is a terrorist!")
         }
 
-        return {
+        return IStream {
             for (name in names)
                 it.publish("multipleHello $name")
         }

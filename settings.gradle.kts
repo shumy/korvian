@@ -4,4 +4,4 @@ dependencyResolutionManagement {
     }
 }
 
-include("korvian-api", "korvian-pipeline", "korvian-demo")
+include("korvian-api", "korvian-pipeline", "korvian-serialization-json", "korvian-demo")

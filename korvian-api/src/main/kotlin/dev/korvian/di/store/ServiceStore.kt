@@ -1,7 +1,9 @@
 package dev.korvian.di.store
 
 import dev.korvian.IReply
+import dev.korvian.IReplyTask
 import dev.korvian.IStream
+import dev.korvian.IStreamTask
 import dev.korvian.ISubscription
 import dev.korvian.Publish
 import dev.korvian.Request
@@ -9,6 +11,9 @@ import dev.korvian.Service
 import dev.korvian.Subscribe
 import dev.korvian.di.DIException
 import kotlinx.serialization.Serializable
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
 import kotlin.reflect.KCallable
 import kotlin.reflect.KClass
 import kotlin.reflect.KParameter
@@ -18,7 +23,6 @@ import kotlin.reflect.full.findAnnotations
 import kotlin.reflect.full.hasAnnotation
 import kotlin.reflect.full.isSuperclassOf
 import kotlin.reflect.full.primaryConstructor
-import kotlin.reflect.full.starProjectedType
 import kotlin.reflect.typeOf
 
 class ServiceStore {
@@ -113,8 +117,7 @@ private fun checkAndConvertParameter(endpoint: String, param: KParameter): Endpo
     if (param.isVararg)
         throw DIException("Varargs are not supported in service methods! Param ${param.name} for $endpoint.")
 
-    val kClass = param.type.classifier!! as KClass<*>
-    if (!nativeTypes.contains(kClass) && !kClass.hasAnnotation<Serializable>())
+    if (!isSupportedType(param.type))
         throw DIException("Unsupported parameter type (${param.name}: ${param.type}) for $endpoint.")
 
     return EndpointParam(param.type, param.name!!, param.isOptional)
@@ -136,24 +139,41 @@ private fun checkAndConvertReturnType(endpoint: String, eType: EndpointType, ret
         }
 
         EndpointType.REQUEST -> {
-            when (kClass) {
-                IReply::class -> retType.arguments[0].type!!
-                IStream::class -> retType.arguments[0].type!!.arguments[0].type!!
-                else -> retType
-            }
+            if (replyTypes.contains(kClass))
+                retType.arguments[0].type!!
+            else retType
         }
     }
 
-    val resolvedRetClass = resolvedRetType.classifier!! as KClass<*>
-    if (!nativeTypes.contains(resolvedRetClass) && !resolvedRetClass.hasAnnotation<Serializable>())
+    if (!isSupportedType(resolvedRetType))
         throw DIException("Unsupported return type (${retType}) for $endpoint.")
 
     return EndpointParam(resolvedRetType, "_return_", retType.isMarkedNullable)
 }
 
-// TODO: extend supported types
+fun isSupportedType(rType: KType): Boolean {
+    val rClass = rType.classifier!! as KClass<*>
+
+    if (rClass == List::class || rClass == Set::class)
+        return isSupportedType(rType.arguments[0].type!!)
+
+    if (rClass == Map::class)
+        return isSupportedType(rType.arguments[0].type!!) && isSupportedType(rType.arguments[1].type!!)
+
+    return nativeTypes.contains(rClass) || rClass.hasAnnotation<Serializable>()
+}
+
+private val replyTypes = setOf(
+    IReply::class, IReplyTask::class,
+    IStream::class, IStreamTask::class
+)
+
 private val nativeTypes = setOf<Any>(
     Unit::class,
-    String::class,
-    List::class
+    Boolean::class,
+    Char::class, String::class,
+    Int::class, UInt::class,
+    Long::class, ULong::class,
+    Float::class, Double::class,
+    LocalDate::class, LocalTime::class, LocalDateTime::class,
 )

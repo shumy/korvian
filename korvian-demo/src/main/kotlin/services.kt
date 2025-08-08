@@ -1,5 +1,6 @@
 import dev.korvian.*
 import handler.HelloServiceHandler
+import java.time.LocalDateTime
 
 @Service(HelloServiceHandler::class)
 interface IHelloService {
@@ -12,7 +13,7 @@ interface IHelloService {
 
     @Request
     @Doc("A simple hello method, returning the compliment.")
-    fun simpleHello(name: String): String
+    fun simpleHello(name: String): LocalDateTime
 
     @Request
     @Doc("A deferred hello method, returning the compliment.")

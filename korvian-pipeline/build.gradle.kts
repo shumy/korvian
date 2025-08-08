@@ -1,3 +1,5 @@
 dependencies {
-    implementation(project(":korvian-api"))
+    api(project(":korvian-api"))
+
+    testImplementation("org.jetbrains.kotlin:kotlin-test")
 }

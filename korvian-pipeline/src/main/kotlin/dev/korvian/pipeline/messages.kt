@@ -3,13 +3,14 @@ package dev.korvian.pipeline
 import kotlinx.serialization.Serializable
 
 enum class IncomingHeaderType(val code: String) {
-    REQUEST("req"), PUBLISH("pub"), SUBSCRIBE("sub");
+    REQUEST("req"), PUBLISH("pub"), SUBSCRIBE("sub"), UNSUBSCRIBE("uns");
 
     companion object {
         fun fromCode(code: String) = when (code) {
             REQUEST.code -> REQUEST
             PUBLISH.code -> PUBLISH
             SUBSCRIBE.code -> SUBSCRIBE
+            UNSUBSCRIBE.code -> UNSUBSCRIBE
             else -> throw PipeException("Code $code not supported for IncomingHeaderType!")
         }
     }
@@ -37,17 +38,23 @@ enum class OutgoingHeaderType(val code: String) {
 sealed interface Incoming {
     val typ: String
     val ref: String
-    val srv: String
-    val trg: String
+
+    sealed interface ServiceIncoming: Incoming {
+        val srv: String
+        val trg: String
+
+        @Serializable
+        data class Request(override val typ: String, override val ref: String, override val srv: String, override val trg: String): ServiceIncoming
+
+        @Serializable
+        data class Publish(override val typ: String, override val ref: String, override val srv: String, override val trg: String): ServiceIncoming
+
+        @Serializable
+        data class Subscribe(override val typ: String, override val ref: String, override val srv: String, override val trg: String): ServiceIncoming
+    }
 
     @Serializable
-    data class Request(override val typ: String, override val ref: String, override val srv: String, override val trg: String): Incoming
-
-    @Serializable
-    data class Publish(override val typ: String, override val ref: String, override val srv: String, override val trg: String): Incoming
-
-    @Serializable
-    data class Subscribe(override val typ: String, override val ref: String, override val srv: String, override val trg: String): Incoming
+    data class UnSubscribe(override val typ: String, override val ref: String, val sub: String): Incoming
 }
 
 sealed interface Outgoing {
@@ -72,12 +79,12 @@ sealed interface Outgoing {
         }
 
         @Serializable
-        data class Next(override val ref: String, val seq: ULong): RefOutgoing {
+        data class Next(override val ref: String, val seq: Long): RefOutgoing {
             override val typ: String = OutgoingHeaderType.NEXT.code
         }
 
         @Serializable
-        data class End(override val ref: String, val seq: ULong): RefOutgoing {
+        data class End(override val ref: String, val seq: Long): RefOutgoing {
             override val typ: String = OutgoingHeaderType.END.code
         }
 
@@ -88,10 +95,12 @@ sealed interface Outgoing {
     }
 
     @Serializable
-    data class Event(val channel: String, val seq: ULong): Outgoing {
+    data class Event(val sub: String, val seq: Long): Outgoing {
         override val typ: String = OutgoingHeaderType.EVENT.code
     }
 }
 
 @Serializable
 class IncomingMessage<T: Any>(val header: Incoming, val body: T)
+
+typealias MsgCallback<R> = (R) -> Unit
