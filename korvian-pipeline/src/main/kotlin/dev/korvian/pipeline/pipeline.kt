@@ -58,8 +58,8 @@ class Pipeline<I: Any, R: Any>(val srvStore: ServiceStore, val serializer: ISeri
                 EndpointType.PUBLISH -> connection.processPublish(dMsg.header.ref)
                 EndpointType.SUBSCRIBE -> connection.processSubscribe(dMsg.header.ref, rType, response.result!!)
             }
-        } catch (ex: CheckError) {
-            connection.sendReject(dMsg.header.ref, ex.error.code, ex.error.reason)
+        } catch (ex: RejectError) {
+            connection.sendReject(dMsg.header.ref, ex.code, ex.reason)
         } catch (ex: PipeException) {
             connection.sendError(dMsg.header.ref, ex.message ?: "Unknown error!")
         } catch (ex: Throwable) {
@@ -90,9 +90,6 @@ class Pipeline<I: Any, R: Any>(val srvStore: ServiceStore, val serializer: ISeri
             }
 
             return HasResult.yes(endpoint.exec.process(srv, args))
-        } catch (ex: RejectError) {
-            connection.sendReject(ref, ex.code, ex.reason)
-            return HasResult.no()
         } catch (ex: Throwable) {
             connection.sendError(ref, ex.message ?: "Unknown error!")
             return HasResult.no()

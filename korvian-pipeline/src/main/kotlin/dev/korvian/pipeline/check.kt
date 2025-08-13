@@ -1,5 +1,6 @@
 package dev.korvian.pipeline
 
+import dev.korvian.RejectError
 import dev.korvian.di.store.EndpointSpec
 
 enum class ErrorCode(val code: UInt, val reason: String) {
@@ -9,9 +10,9 @@ enum class ErrorCode(val code: UInt, val reason: String) {
     Invalid(3U, "Invalid")
 }
 
-class CheckError(val error: ErrorCode): RuntimeException()
+class CheckError(error: ErrorCode): RejectError(error.code, error.reason)
 
 fun interface ICheck<T: Annotation> {
     @Throws(CheckError::class)
-    fun check(anno: T, spec: EndpointSpec): Unit
+    fun check(anno: T, spec: EndpointSpec)
 }

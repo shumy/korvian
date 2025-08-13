@@ -53,30 +53,31 @@ class ServiceStore {
     fun add(kClass: KClass<*>) {
         val typeName = kClass.qualifiedName!!
         if(store.contains(typeName))
-            throw DIException("Service ${kClass.qualifiedName} is already available in store!")
+            throw DIException("Service $typeName is already available in store!")
 
         if(!kClass.java.isInterface)
-            throw DIException("Service ${kClass.qualifiedName} is not an interface!")
+            throw DIException("Service $typeName is not an interface!")
 
         val annService = kClass.findAnnotations(Service::class).firstOrNull()
-            ?: throw DIException("Service ${kClass.qualifiedName} requires @Service annotation!")
+            ?: throw DIException("Service $typeName requires @Service annotation!")
 
         if(!kClass.isSuperclassOf(annService.handler))
-            throw DIException("Handler for service ${kClass.qualifiedName} doesn't implement the service interface!")
+            throw DIException("Handler for service $typeName doesn't implement the service interface!")
 
         val defaultConstructor = annService.handler.primaryConstructor!!
         if (defaultConstructor.parameters.isNotEmpty())
-            throw DIException("Service ${kClass.qualifiedName} with parameters is not supported!")
+            throw DIException("Service $typeName with parameters is not supported!")
 
         for (eMember in kClass.declaredMembers) {
-            val endpoint = getEndpoint(typeName, eMember)
+            val endpoint = getEndpoint(kClass, eMember)
             endpoints[endpoint.spec.name] = endpoint
         }
 
         store[typeName] = defaultConstructor.call()
     }
 
-    private fun getEndpoint(typeName: String, eMember: KCallable<*>): Endpoint {
+    private fun getEndpoint(kClass: KClass<*>, eMember: KCallable<*>): Endpoint {
+        val typeName = kClass.qualifiedName!!
         val endpointName = "$typeName:${eMember.name}"
         var eType: EndpointType? = null
 
@@ -98,10 +99,11 @@ class ServiceStore {
         eType ?: throw DIException("Service method $endpointName requires an endpoint annotation!")
 
         val executor = EndpointExecutor { srv, args -> eMember.call(srv, *args) }
+        val annotations = kClass.annotations.plus(eMember.annotations)
         val params = eMember.parameters.drop(1).map { checkAndConvertParameter(endpointName, it) }
         val retType = checkAndConvertReturnType(endpointName, eType, eMember.returnType)
 
-        return Endpoint(EndpointSpec(eType, endpointName, eMember.annotations, params, retType), executor)
+        return Endpoint(EndpointSpec(eType, endpointName, annotations, params, retType), executor)
     }
 }
 
