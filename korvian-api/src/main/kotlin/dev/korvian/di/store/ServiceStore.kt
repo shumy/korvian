@@ -43,7 +43,7 @@ class ServiceStore {
 
     fun resolveEndpoint(type: EndpointType, target: String): Endpoint? {
         val endpoint = endpoints[target]
-        if (endpoint?.type !== type)
+        if (endpoint?.spec?.type !== type)
             return null
 
         return endpoint
@@ -70,7 +70,7 @@ class ServiceStore {
 
         for (eMember in kClass.declaredMembers) {
             val endpoint = getEndpoint(typeName, eMember)
-            endpoints[endpoint.name] = endpoint
+            endpoints[endpoint.spec.name] = endpoint
         }
 
         store[typeName] = defaultConstructor.call()
@@ -101,13 +101,14 @@ class ServiceStore {
         val params = eMember.parameters.drop(1).map { checkAndConvertParameter(endpointName, it) }
         val retType = checkAndConvertReturnType(endpointName, eType, eMember.returnType)
 
-        return Endpoint(eType, endpointName, executor, params, retType)
+        return Endpoint(EndpointSpec(eType, endpointName, eMember.annotations, params, retType), executor)
     }
 }
 
 enum class EndpointType { REQUEST, PUBLISH, SUBSCRIBE }
 data class EndpointParam(val kType: KType, val name: String, val isOptional: Boolean)
-data class Endpoint(val type: EndpointType, val name: String, val exec: EndpointExecutor, val params: List<EndpointParam>, val retType: EndpointParam)
+data class EndpointSpec(val type: EndpointType, val name: String, val annotations: List<Annotation>, val params: List<EndpointParam>, val retType: EndpointParam)
+data class Endpoint(val spec: EndpointSpec, val exec: EndpointExecutor)
 
 fun interface EndpointExecutor {
     fun process(srv: Any, args: Array<Any?>): Any?

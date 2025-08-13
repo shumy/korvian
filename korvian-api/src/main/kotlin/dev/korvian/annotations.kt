@@ -20,4 +20,5 @@ annotation class Publish
 @Target(FUNCTION)
 annotation class Subscribe
 
+// TODO: should ignore the annotation in ICheck processor
 annotation class Doc(val desc: String)

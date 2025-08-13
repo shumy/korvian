@@ -1,15 +1,17 @@
 package dev.korvian.pipeline
 
-enum class CheckErrorCode(val code: UInt, reason: String) {
+import dev.korvian.di.store.EndpointSpec
+
+enum class ErrorCode(val code: UInt, val reason: String) {
     Unknown(0U, "Unknown"),
     Unauthorized(1U, "Unauthorized"),
-
-    Forbidden(3U, "Forbidden")
+    Forbidden(2U, "Forbidden"),
+    Invalid(3U, "Invalid")
 }
 
-class CheckError(val error: CheckErrorCode): RuntimeException()
+class CheckError(val error: ErrorCode): RuntimeException()
 
-interface ICheck<H: Incoming> {
+fun interface ICheck<T: Annotation> {
     @Throws(CheckError::class)
-    fun check(header: H): Unit
+    fun check(anno: T, spec: EndpointSpec): Unit
 }

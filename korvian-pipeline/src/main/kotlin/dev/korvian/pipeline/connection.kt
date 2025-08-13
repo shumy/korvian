@@ -15,7 +15,7 @@ import kotlin.reflect.safeCast
 import kotlin.reflect.typeOf
 
 @OptIn(ExperimentalAtomicApi::class)
-class Connection<I: Any, R: Any>(private val pipeline: Pipeline<I, *, R>, private val onMsg: MsgCallback<R>) {
+class Connection<I: Any, R: Any>(private val pipeline: Pipeline<I, R>, private val onMsg: MsgCallback<R>) {
     private val subscriptions = ConcurrentHashMap<String, ISubscription<*>>()
 
     fun process(msg: I) {
@@ -112,43 +112,43 @@ class Connection<I: Any, R: Any>(private val pipeline: Pipeline<I, *, R>, privat
 
     internal fun sendError(ref: String, msg: String) {
         val error = Outgoing.RefOutgoing.Error(ref, msg)
-        val data = pipeline.encoder.encode(error)
+        val data = pipeline.serializer.encode(error)
         onMsg.invoke(data)
     }
 
     internal fun sendReject(ref: String, code: UInt, reason: String) {
         val rejectHeader = Outgoing.RefOutgoing.Reject(ref, code, reason)
-        val rejectMsg = pipeline.encoder.encode(rejectHeader)
+        val rejectMsg = pipeline.serializer.encode(rejectHeader)
         onMsg.invoke(rejectMsg)
     }
 
     private fun sendAccept(ref: String, rType: KType? = null, result: Any? = null) {
         val acceptHeader = Outgoing.RefOutgoing.Accept(ref)
-        val acceptMsg = pipeline.encoder.encode(acceptHeader, rType, result)
+        val acceptMsg = pipeline.serializer.encode(acceptHeader, rType, result)
         onMsg.invoke(acceptMsg)
     }
 
     private fun sendReply(ref: String, rType: KType, result: Any?) {
         val replyHeader = Outgoing.RefOutgoing.Reply(ref)
-        val replyMsg = pipeline.encoder.encode(replyHeader, rType, result)
+        val replyMsg = pipeline.serializer.encode(replyHeader, rType, result)
         onMsg.invoke(replyMsg)
     }
 
     private fun sendNext(ref: String, seq: Long, rType: KType, result: Any) {
         val nextHeader = Outgoing.RefOutgoing.Next(ref, seq)
-        val nextMsg = pipeline.encoder.encode(nextHeader, rType, result)
+        val nextMsg = pipeline.serializer.encode(nextHeader, rType, result)
         onMsg.invoke(nextMsg)
     }
 
     private fun sendEnd(ref: String, seq: Long) {
         val endHeader = Outgoing.RefOutgoing.End(ref, seq)
-        val endMsg = pipeline.encoder.encode(endHeader)
+        val endMsg = pipeline.serializer.encode(endHeader)
         onMsg.invoke(endMsg)
     }
 
     private fun sendEvent(id: String, seq: Long, rType: KType, result: Any) {
         val eventHeader = Outgoing.Event(id, seq)
-        val eventMsg = pipeline.encoder.encode(eventHeader, rType, result)
+        val eventMsg = pipeline.serializer.encode(eventHeader, rType, result)
         onMsg.invoke(eventMsg)
     }
 }

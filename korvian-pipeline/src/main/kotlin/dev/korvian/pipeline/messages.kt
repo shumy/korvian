@@ -100,7 +100,6 @@ sealed interface Outgoing {
     }
 }
 
-@Serializable
-class IncomingMessage<T: Any>(val header: Incoming, val body: T)
+class IncomingMessage(val header: Incoming, val body: Any?)
 
 typealias MsgCallback<R> = (R) -> Unit

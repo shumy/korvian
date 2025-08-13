@@ -1,16 +1,20 @@
 import com.lectra.koson.arr
 import com.lectra.koson.obj
+import dev.korvian.Request
 import dev.korvian.di.Store
+import dev.korvian.pipeline.ICheck
 import dev.korvian.pipeline.Pipeline
-import dev.korvian.serialization.JsonDecoder
-import dev.korvian.serialization.JsonEncoder
+import dev.korvian.serialization.JsonSerializer
 import handler.HelloChannelHandler
 
 fun main() {
     Store.Channel.add(String::class, HelloChannelHandler())
     Store.Service += IHelloService::class
 
-    val pipeline = Pipeline(Store.Service, JsonDecoder(), JsonEncoder())
+    val pipeline = Pipeline(Store.Service, JsonSerializer())
+    pipeline.addCheck(ICheck<Request> { anno, spec ->
+        println("Custom check on endpoint ${spec.name} with annotation $anno")
+    })
 
     val connection = pipeline.connect {
         println(it)
@@ -31,7 +35,7 @@ fun main() {
     val simpleHello = obj {
         "head" to obj {
             "typ" to "req"
-            "ref" to "ref-1"
+            "ref" to "ref-2"
             "srv" to "IHelloService"
             "trg" to "simpleHello"
         }
