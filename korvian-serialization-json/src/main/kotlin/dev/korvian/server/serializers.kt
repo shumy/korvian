@@ -1,4 +1,4 @@
-package dev.korvian.serialization
+package dev.korvian.server
 
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.PrimitiveKind

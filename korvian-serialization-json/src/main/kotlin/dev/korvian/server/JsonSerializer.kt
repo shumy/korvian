@@ -1,4 +1,4 @@
-package dev.korvian.serialization
+package dev.korvian.server
 
 import dev.korvian.di.store.EndpointParam
 import dev.korvian.pipeline.ISerializer

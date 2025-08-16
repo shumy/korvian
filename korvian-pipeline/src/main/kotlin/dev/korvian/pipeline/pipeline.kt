@@ -7,21 +7,30 @@ import dev.korvian.di.store.ServiceStore
 import kotlin.reflect.KClass
 
 class Pipeline<I: Any, R: Any>(val srvStore: ServiceStore, val serializer: ISerializer<I, R>) {
-    private val checks = mutableMapOf<KClass<*>, MutableList<ICheck<Annotation>>>()
+    private val connectionChecks = mutableListOf<IConnectionCheck>()
+    private val endpointChecks = mutableMapOf<KClass<*>, MutableList<IEndpointCheck<Annotation>>>()
 
-    inline fun <reified H: Annotation> addCheck(check: ICheck<H>) {
-        addCheck(H::class, check)
+    fun addConnectionCheck(check: IConnectionCheck) {
+        connectionChecks += check
+    }
+
+    inline fun <reified H: Annotation> addEndpointCheck(check: IEndpointCheck<H>) {
+        addEndpointCheck(H::class, check)
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun <H: Annotation> addCheck(kClass: KClass<H>, check: ICheck<H>) {
-        var checkList = checks[kClass]
+    fun <H: Annotation> addEndpointCheck(kClass: KClass<H>, check: IEndpointCheck<H>) {
+        var checkList = endpointChecks[kClass]
         if (checkList === null) {
             checkList = mutableListOf()
-            checks[kClass] = checkList
+            endpointChecks[kClass] = checkList
         }
 
-        checkList += check as ICheck<Annotation>
+        checkList += check as IEndpointCheck<Annotation>
+    }
+
+    fun checkConnection(connInfo: ConnectionInfo) {
+        connectionChecks.forEach { it.check(connInfo) }
     }
 
     fun connect(onMsg: MsgCallback<R>): Connection<I, R> =
@@ -41,7 +50,7 @@ class Pipeline<I: Any, R: Any>(val srvStore: ServiceStore, val serializer: ISeri
 
             val endpoint = resolveEndpoint(srvHeader)
             endpoint.spec.annotations.forEach { anno ->
-                checks[anno.annotationClass]?.forEach { it.check(anno, endpoint.spec) }
+                endpointChecks[anno.annotationClass]?.forEach { it.check(anno, endpoint.spec) }
             }
 
             val args = serializer.bodyDecode(dMsg.body, endpoint.spec.params)

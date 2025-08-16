@@ -14,6 +14,8 @@ import kotlin.reflect.KType
 import kotlin.reflect.safeCast
 import kotlin.reflect.typeOf
 
+data class ConnectionInfo(val origin: String, val uri: String, val headers: Map<String, String>)
+
 @OptIn(ExperimentalAtomicApi::class)
 class Connection<I: Any, R: Any>(private val pipeline: Pipeline<I, R>, private val onMsg: MsgCallback<R>) {
     private val subscriptions = ConcurrentHashMap<String, ISubscription<*>>()
@@ -45,7 +47,7 @@ class Connection<I: Any, R: Any>(private val pipeline: Pipeline<I, R>, private v
     internal fun processUnSubscribe(ref: String, id: String) {
         subscriptions[id]?.unsubscribe()
         subscriptions.remove(id)
-        sendAccept(ref, typeOf<String>(), id)
+        sendAccept(ref)
     }
 
     internal fun processRequest(ref: String, rType: KType, result: Any?) {
