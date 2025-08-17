@@ -8,7 +8,7 @@ import io.netty.handler.codec.http.*
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame
 import java.util.*
 
-class HttpServerHandler(private val pipelines: Map<String, Pipeline<String, String>>): ChannelInboundHandlerAdapter() {
+internal class HttpServerHandler(private val pipelines: Map<String, Pipeline<String, String>>): ChannelInboundHandlerAdapter() {
     override fun channelRead(ctx: ChannelHandlerContext, msg: Any?) {
         if (msg is HttpRequest) {
             println("Http Request Received")
@@ -27,12 +27,12 @@ class HttpServerHandler(private val pipelines: Map<String, Pipeline<String, Stri
     }
 
     private fun tryConnect(ctx: ChannelHandlerContext, req: HttpRequest) {
+        val handshaker = ConnectionInitiator.getWebSocketServerHandshaker(ctx, req) ?: return
         val connInfo = ConnectionInitiator.extractConnectionInfo(req)
         val pipeline = pipelines[connInfo.uri] ?:
             throw RejectError(ErrorCode.ConnectionRejected.code, "No pipeline found for URI: ${connInfo.uri}")
 
         pipeline.checkConnection(connInfo)
-        val handshaker = ConnectionInitiator.getWebSocketServerHandshaker(ctx, req) ?: return
 
         println("Opened Channel : " + ctx.channel())
         val connection = pipeline.connect {

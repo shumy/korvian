@@ -4,6 +4,7 @@ import dev.korvian.RejectError
 import dev.korvian.Request
 import dev.korvian.Service
 import dev.korvian.di.Store
+import dev.korvian.di.context
 import dev.korvian.pipeline.CheckError
 import dev.korvian.pipeline.ErrorCode
 import dev.korvian.pipeline.IEndpointCheck
@@ -11,6 +12,8 @@ import dev.korvian.pipeline.Pipeline
 import dev.korvian.server.JsonSerializer
 import dev.korvian.server.NettyServer
 import handler.HelloChannelHandler
+import handler.Origin
+
 
 fun main() {
     Store.Channel.add(String::class, HelloChannelHandler())
@@ -20,6 +23,9 @@ fun main() {
         addConnectionCheck {
             if (it.origin != "http://localhost:8080")
                 throw RejectError(ErrorCode.Unauthorized.code, "Requires Origin to be localhost")
+
+            //TODO: add connection info to context - setContext(Roles)
+            context(Origin(it.origin))
         }
 
         addEndpointCheck(IEndpointCheck<Request> { anno, spec ->
@@ -30,6 +36,10 @@ fun main() {
 
         addEndpointCheck(Service::class) { _, spec ->
             println("Top Service annotation check on endpoint ${spec.name}")
+
+            //TODO: check roles from connection context - context<Roles>()
+            val origin = context<Origin?>()
+            println("ORIGIN - $origin")
         }
     }
 

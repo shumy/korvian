@@ -37,3 +37,15 @@ inline fun <reified T: Any, reified S: ISink<T>?> sink(name: String): S {
 
     return sink as S
 }
+
+inline fun <reified T> context(): T {
+    val ctx = Store.Context.getUndefined(T::class)
+    if (null !is T && ctx === null)
+        throw DIException("Context for ${T::class.simpleName} not found!")
+
+    return ctx as T
+}
+
+inline fun <reified T: Any> context(obj: T): Unit {
+    Store.Context.add(T::class, obj)
+}

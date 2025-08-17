@@ -5,6 +5,7 @@ import dev.korvian.IReplyTask
 import dev.korvian.IStream
 import dev.korvian.IStreamTask
 import dev.korvian.ISubscription
+import dev.korvian.di.Store
 import kotlinx.coroutines.runBlocking
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.set
@@ -17,7 +18,7 @@ import kotlin.reflect.typeOf
 data class ConnectionInfo(val origin: String, val uri: String, val headers: Map<String, String>)
 
 @OptIn(ExperimentalAtomicApi::class)
-class Connection<I: Any, R: Any>(private val pipeline: Pipeline<I, R>, private val onMsg: MsgCallback<R>) {
+class Connection<I: Any, R: Any>(private val pipeline: Pipeline<I, R>, internal val ctx: Map<String, Any>, private val onMsg: MsgCallback<R>) {
     private val subscriptions = ConcurrentHashMap<String, ISubscription<*>>()
 
     fun process(msg: I) {
@@ -87,7 +88,11 @@ class Connection<I: Any, R: Any>(private val pipeline: Pipeline<I, R>, private v
 
     internal fun processRequestReplyTask(ref: String, rType: KType, reply: IReplyTask<*>) {
         sendAccept(ref)
-        val result = runBlocking { reply.invoke() }
+
+        val result = runBlocking(Store.Context.getAsContextElement()) {
+            reply.invoke()
+        }
+
         sendReply(ref, rType, result)
     }
 
@@ -104,7 +109,7 @@ class Connection<I: Any, R: Any>(private val pipeline: Pipeline<I, R>, private v
         sendAccept(ref)
 
         val seq = AtomicLong(-1L)
-        runBlocking {
+        runBlocking(Store.Context.getAsContextElement()) {
             stream.invoke { sendNext(ref, seq.addAndFetch(1L), rType, it) }
         }
 

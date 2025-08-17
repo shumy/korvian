@@ -1,6 +1,7 @@
 package dev.korvian.pipeline
 
 import dev.korvian.RejectError
+import dev.korvian.di.Store
 import dev.korvian.di.store.Endpoint
 import dev.korvian.di.store.EndpointType
 import dev.korvian.di.store.ServiceStore
@@ -33,8 +34,10 @@ class Pipeline<I: Any, R: Any>(val srvStore: ServiceStore, val serializer: ISeri
         connectionChecks.forEach { it.check(connInfo) }
     }
 
-    fun connect(onMsg: MsgCallback<R>): Connection<I, R> =
-        Connection(this, onMsg)
+    fun connect(onMsg: MsgCallback<R>): Connection<I, R> {
+        val ctx = Store.Context.getAll()
+        return Connection(this, ctx, onMsg)
+    }
 
     internal fun process(connection: Connection<I, R>, msg: I) {
         val dMsg = serializer.preDecode(msg)
@@ -48,6 +51,7 @@ class Pipeline<I: Any, R: Any>(val srvStore: ServiceStore, val serializer: ISeri
             val srv = srvStore.resolveService(srvHeader.srv)
                 ?: throw PipeException("Service ${srvHeader.srv} not found!")
 
+            Store.Context.addAll(connection.ctx)
             val endpoint = resolveEndpoint(srvHeader)
             endpoint.spec.annotations.forEach { anno ->
                 endpointChecks[anno.annotationClass]?.forEach { it.check(anno, endpoint.spec) }

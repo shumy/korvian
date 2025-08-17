@@ -20,6 +20,6 @@ interface IHelloService {
     fun deferredHello(name: String): IReply<String>
 
     @Request
-    fun multipleHello(names: List<String>): IStream<String>
+    fun multipleHello(names: List<String>): IStreamTask<String>
 }
 

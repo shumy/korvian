@@ -15,7 +15,7 @@ import io.netty.handler.codec.http.websocketx.WebSocketServerHandshakerFactory
 import java.util.Base64
 import kotlin.text.split
 
-object ConnectionInitiator {
+internal object ConnectionInitiator {
     fun extractConnectionInfo(req: HttpRequest): ConnectionInfo {
         val origin = req.headers().get(HttpHeaderNames.ORIGIN) ?:
             throw RejectError(ErrorCode.ConnectionRejected.code, "Expecting Origin header!")

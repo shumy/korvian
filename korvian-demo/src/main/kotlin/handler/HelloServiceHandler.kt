@@ -4,9 +4,10 @@ import IHelloService
 import dev.korvian.IReply
 import dev.korvian.ISink
 import dev.korvian.ISource
-import dev.korvian.IStream
+import dev.korvian.IStreamTask
 import dev.korvian.ISubscription
 import dev.korvian.RejectError
+import dev.korvian.di.context
 import dev.korvian.di.sink
 import dev.korvian.di.source
 import java.time.LocalDateTime
@@ -37,16 +38,24 @@ class HelloServiceHandler: IHelloService {
     }
 
     // This will send the accept signal before starting the stream process
-    override fun multipleHello(names: List<String>): IStream<String> {
+    override fun multipleHello(names: List<String>): IStreamTask<String> {
         // make some validations before accept request!
         for (name in names) {
             if (name == "Alex")
                 throw RejectError(0U, "Sorry, Alex is a terrorist!")
         }
 
-        return IStream {
+        val mOrigin = context<Origin?>()
+        println("start-multipleHello[Origin] - $mOrigin")
+
+        return IStreamTask {
+            val tOrigin = context<Origin?>()
+            println("task-multipleHello[Origin] - $tOrigin")
+
             for (name in names)
                 it.publish("multipleHello $name")
         }
     }
 }
+
+data class Origin(val value: String)

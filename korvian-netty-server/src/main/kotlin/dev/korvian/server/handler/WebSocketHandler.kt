@@ -9,7 +9,7 @@ import io.netty.handler.codec.http.websocketx.PongWebSocketFrame
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame
 import io.netty.handler.codec.http.websocketx.WebSocketFrame
 
-class WebSocketHandler(private val connection: Connection<String, String>): ChannelInboundHandlerAdapter() {
+internal class WebSocketHandler(private val connection: Connection<String, String>): ChannelInboundHandlerAdapter() {
     override fun channelRead(ctx: ChannelHandlerContext, msg: Any?) {
         if (msg is WebSocketFrame) {
             when (msg) {
